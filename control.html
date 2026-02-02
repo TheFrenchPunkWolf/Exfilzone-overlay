@@ -144,11 +144,19 @@ ref.on("value", snap => {
 });
 
 // ----- TIMER -----
-setInterval(() => {
-  if(!raidStart) {
+function updateTimer() {
+  if(!raidStart){
     timer.innerText = "00:00";
-    return;
+  } else {
+    const elapsed = Math.floor((Date.now() - raidStart)/1000);
+    timer.innerText = String(Math.floor(elapsed/60)).padStart(2,"0") + ":" + String(elapsed%60).padStart(2,"0");
   }
+  requestAnimationFrame(updateTimer); // rappel à la frame suivante
+}
+
+// Démarrage du timer live
+updateTimer();
+
   const elapsed = Math.floor((Date.now() - raidStart)/1000);
   timer.innerText = String(Math.floor(elapsed/60)).padStart(2,"0") + ":" + String(elapsed%60).padStart(2,"0");
 }, 1000);
