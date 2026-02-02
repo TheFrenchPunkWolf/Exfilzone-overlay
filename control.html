@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Exfilzone Control</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+body{
+  background:#050505;
+  color:white;
+  font-family:'Arial Black',sans-serif;
+  text-align:center;
+  margin:0; padding:0;
+}
+h1{
+  color:#ff3cac;
+  text-shadow:0 0 20px #ff3cac,0 0 40px #2bd2ff;
+  margin-top:20px;
+}
+.hidden{display:none;}
+.stat{
+  font-size:48px;
+  margin:20px;
+  animation:pulse 1.5s infinite alternate;
+}
+button{
+  font-size:48px;
+  width:180px; height:180px;
+  margin:10px;
+  border:none; border-radius:20px;
+  background:linear-gradient(135deg,#ff3cac,#2bd2ff);
+  box-shadow:0 0 20px #2bd2ff;
+  cursor:pointer;
+}
+button:active{
+  transform:scale(0.95);
+}
+.raid{width:380px;}
+.reset{
+  background:linear-gradient(135deg,#ff004c,#ff3cac);
+  box-shadow:0 0 25px #ff004c;
+}
+@keyframes pulse{
+  from{filter:drop-shadow(0 0 5px #ff3cac)}
+  to{filter:drop-shadow(0 0 20px #2bd2ff)}
+}
+</style>
+</head>
+<body>
+
+<h1>⚔️ EXFILZONE</h1>
+
+<!-- PIN -->
+<div id="lock">
+  <h2>🔒 PIN</h2>
+  <input id="pinInput" type="password" style="font-size:40px;width:200px">
+  <br><br>
+  <button onclick="checkPin()">OK</button>
+</div>
+
+<!-- PANEL -->
+<div id="panel" class="hidden">
+
+<div class="stat">🔥 KILLS <span id="kills">0</span></div>
+<button onclick="inc('kills')">+</button>
+
+<div class="stat">💀 MORTS <span id="deaths">0</span></div>
+<button onclick="inc('deaths')">+</button>
+
+<div class="stat">⏱ RAID <span id="timer">00:00</span></div>
+
+<button class="raid" onclick="startRaid()">🟢 DÉBUT DU RAID</button>
+<button class="raid" onclick="raidEnd()">🚩 RAID TERMINÉ</button>
+
+<div class="stat">🎯 RAIDS <span id="raids">0</span></div>
+<div class="stat">📊 K/D <span id="kd">0.00</span></div>
+
+<br><br>
+<button class="raid reset" onclick="confirmReset()">☢ RESET SESSION</button>
+
+</div>
+
+<script>
+// 🔥 CONFIG FIREBASE : Remplace par tes infos
+firebase.initializeApp({
+  apiKey:"AIzaSyCfIO5AIHqXT8m134ynF8dr5t-SfNNjA8k",
+  databaseURL:"https://exfilzone-overlay-default-rtdb.europe-west1.firebasedatabase.app"
+});
+const ref = firebase.database().ref("exfilzone");
+
+// Variables
+let raidStart = 0;
+
+// ----- PIN -----
+function checkPin(){
+  ref.child("pin").once("value", snap => {
+    if(pinInput.value === snap.val()){
+      lock.classList.add("hidden");
+      panel.classList.remove("hidden");
+    } else alert("PIN incorrect");
+  });
+}
+
+// ----- STATS -----
+function inc(key){
+  ref.child(key).transaction(v => (v||0)+1);
+}
+
+// ----- RAIDS -----
+function startRaid(){
+  const now = Date.now();
+  ref.child("raidStart").set(now);
+}
+
+function raidEnd(){
+  ref.child("raids").transaction(v => (v||0)+1);
+  ref.child("raidStart").set(0); // reset timer
+}
+
+// ----- RESET -----
+function confirmReset(){
+  if(confirm("⚠️ Reset toute la session ?")){
+    ref.update({
+      kills:0,
+      deaths:0,
+      raids:0,
+      raidStart:0
+    });
+  }
+}
+
+// ----- SYNC FIREBASE -----
+ref.on("value", snap => {
+  const data = snap.val() || {};
+  kills.innerText = data.kills || 0;
+  deaths.innerText = data.deaths || 0;
+  raids.innerText = data.raids || 0;
+  kd.innerText = (data.deaths ? (data.kills / data.deaths) : (data.kills || 0)).toFixed(2);
+  raidStart = data.raidStart || 0;
+});
+
+// ----- TIMER -----
+setInterval(() => {
+  if(!raidStart) {
+    timer.innerText = "00:00";
+    return;
+  }
+  const elapsed = Math.floor((Date.now() - raidStart)/1000);
+  timer.innerText = String(Math.floor(elapsed/60)).padStart(2,"0") + ":" + String(elapsed%60).padStart(2,"0");
+}, 1000);
+
+</script>
+</body>
+</html>
+
