@@ -4,33 +4,42 @@
 <meta charset="UTF-8">
 <title>Exfilzone Overlay</title>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
 body{
+  margin:0;
   background:transparent;
   color:white;
   font-family:Arial Black, sans-serif;
 }
+
 .box{
-  background:rgba(0,0,0,.6);
+  background:rgba(0,0,0,0.65);
   border:2px solid #2bd2ff;
-  box-shadow:0 0 15px #2bd2ff;
-  padding:15px;
+  box-shadow:0 0 20px #2bd2ff;
+  padding:16px;
   width:280px;
 }
+
 .stat{
   font-size:28px;
+  margin-bottom:6px;
 }
+
 .timer{
-  font-size:36px;
+  font-size:38px;
   color:#ff3cac;
+  text-shadow:0 0 10px #ff3cac, 0 0 20px #2bd2ff;
+  margin-top:10px;
 }
 </style>
 </head>
 
 <body>
+
 <div class="box">
   <div class="stat">🔥 KILLS <span id="kills">0</span></div>
   <div class="stat">💀 MORTS <span id="deaths">0</span></div>
@@ -40,36 +49,46 @@ body{
 </div>
 
 <script>
-// FIREBASE
+// 🔥 CONFIG FIREBASE (REMPLACE PAR TES INFOS)
 firebase.initializeApp({
-  apiKey:"AIzaSyCfIO5AIHqXT8m134ynF8dr5t-SfNNjA8k",
-  databaseURL:"https://exfilzone-overlay-default-rtdb.europe-west1.firebasedatabase.app"
-});
-const ref=firebase.database().ref("exfilzone");
-let raidStart=0;
-
-ref.on("value", s=>{
-  const d=s.val()||{};
-  kills.innerText=d.kills||0;
-  deaths.innerText=d.deaths||0;
-  raids.innerText=d.raids||0;
-  raidStart=d.raidStart||0;
-  kd.innerText=((d.deaths?d.kills/d.deaths:d.kills)||0).toFixed(2);
+  apiKey: "AIzaSyCfIO5AIHqXT8m134ynF8dr5t-SfNNjA8k",
+  databaseURL: "https://exfilzone-overlay-default-rtdb.europe-west1.firebasedatabase.app"
 });
 
-// TIMER LIVE
-function updateTimer(){
-  if(!raidStart){
-    timer.innerText="00:00";
-  }else{
-    const t=Math.floor((Date.now()-raidStart)/1000);
-    timer.innerText=
-      String(Math.floor(t/60)).padStart(2,"0")+":"+
-      String(t%60).padStart(2,"0");
+const ref = firebase.database().ref("exfilzone");
+
+let raidStart = 0;
+
+// 🔄 SYNCHRO FIREBASE
+ref.on("value", snapshot => {
+  const d = snapshot.val() || {};
+
+  document.getElementById("kills").innerText = d.kills || 0;
+  document.getElementById("deaths").innerText = d.deaths || 0;
+  document.getElementById("raids").innerText = d.raids || 0;
+
+  const kd = (d.deaths ? d.kills / d.deaths : d.kills || 0);
+  document.getElementById("kd").innerText = kd.toFixed(2);
+
+  raidStart = d.raidStart || 0;
+});
+
+// ⏱ TIMER OBS (SETINTERVAL = FIABLE)
+setInterval(() => {
+
+  if (!raidStart) {
+    document.getElementById("timer").innerText = "00:00";
+    return;
   }
-  requestAnimationFrame(updateTimer);
-}
-updateTimer();
+
+  const elapsed = Math.floor((Date.now() - raidStart) / 1000);
+  const minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
+  const seconds = String(elapsed % 60).padStart(2, "0");
+
+  document.getElementById("timer").innerText = `${minutes}:${seconds}`;
+
+}, 1000);
 </script>
+
 </body>
 </html>
