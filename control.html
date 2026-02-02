@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Exfilzone Control</title>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -12,46 +11,37 @@
 body{
   background:#050505;
   color:white;
-  font-family:'Arial Black',sans-serif;
+  font-family:Arial Black, sans-serif;
   text-align:center;
-  margin:0; padding:0;
+  margin:0;
 }
 h1{
   color:#ff3cac;
-  text-shadow:0 0 20px #ff3cac,0 0 40px #2bd2ff;
-  margin-top:20px;
+  text-shadow:0 0 15px #ff3cac,0 0 30px #2bd2ff;
 }
-.hidden{display:none;}
+.hidden{display:none}
 .stat{
   font-size:48px;
   margin:20px;
-  animation:pulse 1.5s infinite alternate;
 }
 button{
-  font-size:48px;
-  width:180px; height:180px;
+  font-size:42px;
+  width:180px;
+  height:180px;
   margin:10px;
-  border:none; border-radius:20px;
+  border:none;
+  border-radius:20px;
   background:linear-gradient(135deg,#ff3cac,#2bd2ff);
   box-shadow:0 0 20px #2bd2ff;
-  cursor:pointer;
 }
-button:active{
-  transform:scale(0.95);
-}
-.raid{width:380px;}
+.raid{width:380px}
 .reset{
   background:linear-gradient(135deg,#ff004c,#ff3cac);
-  box-shadow:0 0 25px #ff004c;
-}
-@keyframes pulse{
-  from{filter:drop-shadow(0 0 5px #ff3cac)}
-  to{filter:drop-shadow(0 0 20px #2bd2ff)}
 }
 </style>
 </head>
-<body>
 
+<body>
 <h1>⚔️ EXFILZONE</h1>
 
 <!-- PIN -->
@@ -74,93 +64,80 @@ button:active{
 <div class="stat">⏱ RAID <span id="timer">00:00</span></div>
 
 <button class="raid" onclick="startRaid()">🟢 DÉBUT DU RAID</button>
-<button class="raid" onclick="raidEnd()">🚩 RAID TERMINÉ</button>
+<button class="raid" onclick="endRaid()">🚩 RAID TERMINÉ</button>
 
 <div class="stat">🎯 RAIDS <span id="raids">0</span></div>
 <div class="stat">📊 K/D <span id="kd">0.00</span></div>
 
-<br><br>
-<button class="raid reset" onclick="confirmReset()">☢ RESET SESSION</button>
+<br>
+<button class="raid reset" onclick="resetSession()">☢ RESET SESSION</button>
 
 </div>
 
 <script>
-// 🔥 CONFIG FIREBASE : Remplace par tes infos
+// 🔥 FIREBASE CONFIG (remplace par les tiennes)
 firebase.initializeApp({
-  apiKey:"AIzaSyCfIO5AIHqXT8m134ynF8dr5t-SfNNjA8k",
-  databaseURL:"https://exfilzone-overlay-default-rtdb.europe-west1.firebasedatabase.app"
+  apiKey: "AIzaSyCfIO5AIHqXT8m134ynF8dr5t-SfNNjA8k",
+  databaseURL: "https://exfilzone-overlay-default-rtdb.europe-west1.firebasedatabase.app"
 });
 const ref = firebase.database().ref("exfilzone");
 
-// Variables
 let raidStart = 0;
 
-// ----- PIN -----
+// PIN
 function checkPin(){
-  ref.child("pin").once("value", snap => {
-    if(pinInput.value === snap.val()){
+  ref.child("pin").once("value", s=>{
+    if(pinInput.value === s.val()){
       lock.classList.add("hidden");
       panel.classList.remove("hidden");
-    } else alert("PIN incorrect");
+    }
   });
 }
 
-// ----- STATS -----
-function inc(key){
-  ref.child(key).transaction(v => (v||0)+1);
+// STATS
+function inc(k){
+  ref.child(k).transaction(v=>(v||0)+1);
 }
 
-// ----- RAIDS -----
+// RAID
 function startRaid(){
-  const now = Date.now();
-  ref.child("raidStart").set(now);
+  ref.child("raidStart").set(Date.now());
+}
+function endRaid(){
+  ref.child("raids").transaction(v=>(v||0)+1);
+  ref.child("raidStart").set(0);
 }
 
-function raidEnd(){
-  ref.child("raids").transaction(v => (v||0)+1);
-  ref.child("raidStart").set(0); // reset timer
-}
-
-// ----- RESET -----
-function confirmReset(){
-  if(confirm("⚠️ Reset toute la session ?")){
-    ref.update({
-      kills:0,
-      deaths:0,
-      raids:0,
-      raidStart:0
-    });
+// RESET
+function resetSession(){
+  if(confirm("Reset session ?")){
+    ref.update({kills:0,deaths:0,raids:0,raidStart:0});
   }
 }
 
-// ----- SYNC FIREBASE -----
-ref.on("value", snap => {
-  const data = snap.val() || {};
-  kills.innerText = data.kills || 0;
-  deaths.innerText = data.deaths || 0;
-  raids.innerText = data.raids || 0;
-  kd.innerText = (data.deaths ? (data.kills / data.deaths) : (data.kills || 0)).toFixed(2);
-  raidStart = data.raidStart || 0;
+// SYNC
+ref.on("value", s=>{
+  const d=s.val()||{};
+  kills.innerText=d.kills||0;
+  deaths.innerText=d.deaths||0;
+  raids.innerText=d.raids||0;
+  raidStart=d.raidStart||0;
+  kd.innerText=((d.deaths?d.kills/d.deaths:d.kills)||0).toFixed(2);
 });
 
-// ----- TIMER -----
-function updateTimer() {
+// TIMER LIVE
+function updateTimer(){
   if(!raidStart){
-    timer.innerText = "00:00";
-  } else {
-    const elapsed = Math.floor((Date.now() - raidStart)/1000);
-    timer.innerText = String(Math.floor(elapsed/60)).padStart(2,"0") + ":" + String(elapsed%60).padStart(2,"0");
+    timer.innerText="00:00";
+  }else{
+    const t=Math.floor((Date.now()-raidStart)/1000);
+    timer.innerText=
+      String(Math.floor(t/60)).padStart(2,"0")+":"+
+      String(t%60).padStart(2,"0");
   }
-  requestAnimationFrame(updateTimer); // rappel à la frame suivante
+  requestAnimationFrame(updateTimer);
 }
-
-// Démarrage du timer live
 updateTimer();
-
-  const elapsed = Math.floor((Date.now() - raidStart)/1000);
-  timer.innerText = String(Math.floor(elapsed/60)).padStart(2,"0") + ":" + String(elapsed%60).padStart(2,"0");
-}, 1000);
-
 </script>
 </body>
 </html>

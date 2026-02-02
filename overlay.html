@@ -1,54 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+<meta charset="UTF-8">
+<title>Exfilzone Overlay</title>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <style>
 body{
   background:transparent;
-  font-family:'Arial Black';
   color:white;
+  font-family:Arial Black, sans-serif;
 }
 .box{
-  padding:20px;
+  background:rgba(0,0,0,.6);
   border:2px solid #2bd2ff;
-  box-shadow:0 0 30px #ff3cac;
+  box-shadow:0 0 15px #2bd2ff;
+  padding:15px;
+  width:280px;
 }
-.line{
-  font-size:40px;
-  text-shadow:0 0 15px #2bd2ff;
+.stat{
+  font-size:28px;
+}
+.timer{
+  font-size:36px;
+  color:#ff3cac;
 }
 </style>
 </head>
-<body>
 
+<body>
 <div class="box">
-  <div class="line">🔥 <span id="k">0</span></div>
-  <div class="line">💀 <span id="d">0</span></div>
-  <div class="line">🎯 <span id="r">0</span></div>
-  <div class="line">⏱ <span id="t">00:00</span></div>
-  <div class="line">📊 <span id="kd">0.00</span></div>
+  <div class="stat">🔥 KILLS <span id="kills">0</span></div>
+  <div class="stat">💀 MORTS <span id="deaths">0</span></div>
+  <div class="stat">🎯 RAIDS <span id="raids">0</span></div>
+  <div class="stat">📊 K/D <span id="kd">0.00</span></div>
+  <div class="timer">⏱ <span id="timer">00:00</span></div>
 </div>
 
 <script>
+// FIREBASE
 firebase.initializeApp({
   apiKey:"AIzaSyCfIO5AIHqXT8m134ynF8dr5t-SfNNjA8k",
   databaseURL:"https://exfilzone-overlay-default-rtdb.europe-west1.firebasedatabase.app"
 });
-firebase.database().ref("exfilzone").on("value",s=>{
-  const v=s.val()||{};
-  k.innerText=v.kills||0;
-  d.innerText=v.deaths||0;
-  r.innerText=v.raids||0;
-  kd.innerText=v.deaths?(v.kills/v.deaths).toFixed(2):(v.kills||0).toFixed(2);
-  if(v.raidStart){
-    const sec=Math.floor((Date.now()-v.raidStart)/1000);
-    t.innerText=
-      String(Math.floor(sec/60)).padStart(2,"0")+":"+
-      String(sec%60).padStart(2,"0");
-  }
-});
-</script>
+const ref=firebase.database().ref("exfilzone");
+let raidStart=0;
 
+ref.on("value", s=>{
+  const d=s.val()||{};
+  kills.innerText=d.kills||0;
+  deaths.innerText=d.deaths||0;
+  raids.innerText=d.raids||0;
+  raidStart=d.raidStart||0;
+  kd.innerText=((d.deaths?d.kills/d.deaths:d.kills)||0).toFixed(2);
+});
+
+// TIMER LIVE
+function updateTimer(){
+  if(!raidStart){
+    timer.innerText="00:00";
+  }else{
+    const t=Math.floor((Date.now()-raidStart)/1000);
+    timer.innerText=
+      String(Math.floor(t/60)).padStart(2,"0")+":"+
+      String(t%60).padStart(2,"0");
+  }
+  requestAnimationFrame(updateTimer);
+}
+updateTimer();
+</script>
 </body>
 </html>
